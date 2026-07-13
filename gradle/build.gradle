@@ -1,9 +1,10 @@
 plugins {
     id 'application'
+    id 'com.diffplug.spotless' version '6.25.0'
 }
 
-group 'com.css'
-version '1.0'
+group = 'com.css'
+version = '1.0'
 
 apply plugin: "java"
 
@@ -32,4 +33,11 @@ ext {
 
 application {
     mainClass.set(javaMainClass)
+}
+
+spotless {
+    java {
+        target 'src/**/*.java'
+        toggleOffOn()
+    }
 }

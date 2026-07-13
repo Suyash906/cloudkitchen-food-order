@@ -57,7 +57,17 @@ public class Order {
   }
 
   public synchronized void transitionTo(StorageType newStorage){
+    this.updateFreshness();
+    this.currentStorage = newStorage;
+  }
 
+  public synchronized double getRemainingFreshness() {
+    updateFreshness();
+    return this.remainingFreshness;
+  }
+
+  public synchronized boolean isExpired() {
+    return getRemainingFreshness() <= 0;
   }
 
   private void updateFreshness() {
