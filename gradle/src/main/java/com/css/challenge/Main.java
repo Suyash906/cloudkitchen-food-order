@@ -71,8 +71,13 @@ public class Main implements Runnable {
       for (Order order : orders) {
 
         scheduler.schedule(() -> {
-          LOGGER.info("[ARRIVAL] New Order prepared: {} ({})", order.getId(), order.getName());
-          kitchenManager.placeOrder(order);
+            try {
+                LOGGER.info("[ARRIVAL] New Order prepared: {} ({})", order.getId(), order.getName());
+                kitchenManager.placeOrder(order);
+            } catch (RuntimeException e) {
+                LOGGER.error("[ARRIVAL] Failed to place order {}: {}", order.getId(), e.getMessage(), e);
+            }
+
         }, currentOrderDelayMillis, TimeUnit.MILLISECONDS);
 
 
@@ -80,8 +85,12 @@ public class Main implements Runnable {
         long totalDelayToPickup = currentOrderDelayMillis + driverDelayMillis;
 
         scheduler.schedule(() -> {
-          LOGGER.info("[DRIVER] Driver arriving to collect Order: {}", order.getId());
-          kitchenManager.pickupOrder(order.getId());
+            try {
+                LOGGER.info("[DRIVER] Driver arriving to collect Order: {}", order.getId());
+                kitchenManager.pickupOrder(order.getId());
+            } catch(RuntimeException e) {
+                LOGGER.error("[DRIVER] Failed to pickup order {}: {}", order.getId(), e.getMessage(), e);
+            }
         }, totalDelayToPickup, TimeUnit.MILLISECONDS);
 
         currentOrderDelayMillis += rate.toMillis();

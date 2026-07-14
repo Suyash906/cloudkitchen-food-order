@@ -30,8 +30,16 @@ public class KitchenManager{
     private final List<Action> ledger = Collections.synchronizedList(new ArrayList<>());
 
     public void placeOrder(Order order) {
+        if (order == null || order.getId() == null || order.getTemp() == null) {
+            throw new IllegalArgumentException("Order, order id, and temp must not be null");
+        }
         kitchenLock.lock();
         try {
+            if (masterLookup.containsKey(order.getId())) {
+                System.out.printf("[REJECT] Order %s already exists; ignoring duplicate placement.%n", order.getId());
+                return;
+            }
+
             StorageType idealStorage = getIdealStorage(order);
 
             // Rule 1: Try to place in its primary ideal storage location
@@ -74,6 +82,9 @@ public class KitchenManager{
     }
 
     public void pickupOrder(String orderId) {
+        if (orderId == null) {
+            throw new IllegalArgumentException("Order id must not be null");
+        }
         kitchenLock.lock();
         try {
             Map<String, Order> targetStorage = masterLookup.get(orderId);
@@ -85,13 +96,9 @@ public class KitchenManager{
             Order order = targetStorage.remove(orderId);
             masterLookup.remove(orderId);
 
-            if (order.isExpired()) {
-                logAction(orderId, Action.DISCARD, getActionTargetString(targetStorage));
-                System.out.printf("[DISCARD] Order %s expired before pickup.%n", orderId);
-            } else {
-                logAction(orderId, Action.PICKUP, getActionTargetString(targetStorage));
-                System.out.printf("[PICKUP] Driver successfully retrieved Order %s.%n", orderId);
-            }
+            logAction(orderId, Action.PICKUP, getActionTargetString(targetStorage));
+            System.out.printf("[PICKUP] Driver successfully retrieved Order %s.%n", orderId);
+
         } finally {
             kitchenLock.unlock();
         }
