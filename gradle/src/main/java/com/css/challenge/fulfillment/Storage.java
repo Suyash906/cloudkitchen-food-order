@@ -2,6 +2,8 @@ package com.css.challenge.fulfillment;
 
 import com.css.challenge.client.Order;
 import com.css.challenge.client.StorageType;
+
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -34,7 +36,7 @@ public class Storage {
     }
 
     public Collection<Order> getOrders() {
-        return orders.values();
+        return new ArrayList<>(orders.values());
     }
 
 }

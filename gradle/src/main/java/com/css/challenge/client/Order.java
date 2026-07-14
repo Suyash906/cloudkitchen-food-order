@@ -66,21 +66,14 @@ public class Order {
     return this.remainingFreshness;
   }
 
-  public synchronized boolean isExpired() {
-    return getRemainingFreshness() <= 0;
-  }
-
   private void updateFreshness() {
-    if (this.currentStorage == null || this.remainingFreshness <= 0) {
-      return;
-    }
-
-    long now = System.currentTimeMillis();
-    double elapsedTime = (now - this.lastUpdateTimestamp) / 1000.0;
-
-    double decay = elapsedTime * this.currentStorage.getDecayMultiplier();
-    this.remainingFreshness = Math.max(0, this.remainingFreshness - decay);
-    this.lastUpdateTimestamp = now;
+      long now = System.currentTimeMillis();
+      if (this.currentStorage != null && this.remainingFreshness > 0) {
+          double elapsedTime = (now - this.lastUpdateTimestamp) / 1000.0;
+          double decay = elapsedTime * this.currentStorage.getDecayMultiplier();
+          this.remainingFreshness = Math.max(0, this.remainingFreshness - decay);
+      }
+      this.lastUpdateTimestamp = now;
   }
 
   @Override
