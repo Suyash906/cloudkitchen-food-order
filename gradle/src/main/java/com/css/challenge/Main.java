@@ -7,13 +7,7 @@ import com.css.challenge.client.Problem;
 import com.css.challenge.fulfillment.KitchenManager;
 import java.io.IOException;
 import java.time.Duration;
-import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.TimeUnit;
 
 import com.css.challenge.fulfillment.OrderFulfillmentService;
 import org.slf4j.Logger;
@@ -54,74 +48,24 @@ public class Main implements Runnable {
   @Override
   public void run() {
     try {
-      Client client = new Client(endpoint, auth);
-      Problem problem = client.newProblem(name, seed);
+        Client client = new Client(endpoint, auth);
+        Problem problem = client.newProblem(name, seed);
 
-      List<Order> orders = problem.getOrders();
-      LOGGER.info("Starting simulation for {} incoming orders...", orders.size());
-
-      // ------ Execution harness logic goes here using rate, min and max ----
+        List<Order> orders = problem.getOrders();
+        LOGGER.info("Starting simulation for {} incoming orders...", orders.size());
 
         OrderFulfillmentService kitchenManager = new KitchenManager();
+        new OrderArrivalSimulator(kitchenManager, rate, min, max).simulate(orders);
 
-      ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(4);
+        List<Action> actions = kitchenManager.getLedger();
+        LOGGER.info("Simulation complete. Submitting ledger with {} captured actions to server...", actions.size());
 
-      long currentOrderDelayMillis = 0;
-      long minPickupMillis = min.toMillis();
-      long maxPickupMillis = max.toMillis();
-
-      for (Order order : orders) {
-
-        scheduler.schedule(() -> {
-            try {
-                LOGGER.info("[ARRIVAL] New Order prepared: {} ({})", order.getId(), order.getName());
-                kitchenManager.placeOrder(order);
-            } catch (RuntimeException e) {
-                LOGGER.error("[ARRIVAL] Failed to place order {}: {}", order.getId(), e.getMessage(), e);
-            }
-
-        }, currentOrderDelayMillis, TimeUnit.MILLISECONDS);
-
-
-        long driverDelayMillis = ThreadLocalRandom.current().nextLong(minPickupMillis, maxPickupMillis + 1);
-        long totalDelayToPickup = currentOrderDelayMillis + driverDelayMillis;
-
-        scheduler.schedule(() -> {
-            try {
-                LOGGER.info("[DRIVER] Driver arriving to collect Order: {}", order.getId());
-                kitchenManager.pickupOrder(order.getId());
-            } catch(RuntimeException e) {
-                LOGGER.error("[DRIVER] Failed to pickup order {}: {}", order.getId(), e.getMessage(), e);
-            }
-        }, totalDelayToPickup, TimeUnit.MILLISECONDS);
-
-        currentOrderDelayMillis += rate.toMillis();
-
-      }
-
-
-      scheduler.shutdown();
-
-
-      long maxWaitTimeSeconds = (currentOrderDelayMillis + maxPickupMillis) / 1000 + 5;
-      LOGGER.info("All tasks dispatched. Awaiting final driver pickups (Max wait: {}s)...", maxWaitTimeSeconds);
-
-      if (!scheduler.awaitTermination(maxWaitTimeSeconds, TimeUnit.SECONDS)) {
-        LOGGER.warn("Simulation reached timeout before all drivers completed their runs.");
-      }
-
-      // Harvesting the complete, thread-safe sequence of actions captured by our engine
-      List<Action> actions = kitchenManager.getLedger();
-      LOGGER.info("Simulation complete. Submitting ledger with {} captured actions to server...", actions.size());
-
-      // ----------------------------------------------------------------------
-
-      String result = client.solveProblem(problem.getTestId(), rate, min, max, actions);
-      LOGGER.info("Result: {}", result);
+        String result = client.solveProblem(problem.getTestId(), rate, min, max, actions);
+        LOGGER.info("Result: {}", result);
 
     } catch (IOException | InterruptedException e) {
-      LOGGER.error("Execution failed: {}", e.getMessage());
-      Thread.currentThread().interrupt();
+        LOGGER.error("Execution failed: {}", e.getMessage());
+        Thread.currentThread().interrupt();
     }
   }
 
