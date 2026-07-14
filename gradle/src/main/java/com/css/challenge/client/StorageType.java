@@ -20,4 +20,11 @@ public enum StorageType {
     public String getActionTarget() {
         return actionTarget;
     }
+    public static StorageType fromTemp(String temp) {
+        switch (temp.toLowerCase()) {
+            case "hot": return HEATER;
+            case "cold": return COOLER;
+            default: return SHELF;
+        }
+    }
 }

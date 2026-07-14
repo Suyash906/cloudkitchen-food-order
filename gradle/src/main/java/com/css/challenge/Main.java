@@ -14,6 +14,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+
+import com.css.challenge.fulfillment.OrderFulfillmentService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
@@ -60,7 +62,7 @@ public class Main implements Runnable {
 
       // ------ Execution harness logic goes here using rate, min and max ----
 
-      KitchenManager kitchenManager = new KitchenManager();
+        OrderFulfillmentService kitchenManager = new KitchenManager();
 
       ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(4);
 
