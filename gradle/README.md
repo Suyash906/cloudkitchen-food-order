@@ -1,6 +1,6 @@
 # README
 
-Author: `<your name here>`
+Author: `Suyash Srivastava`
 
 ## How to run
 
@@ -19,4 +19,11 @@ $ ./gradlew run --args="--auth=<token>"
 
 ## Discard criteria
 
-`<your chosen discard criteria and rationale here>`
+### Logic
+```
+When an order can't be placed on it's ideal storage, and the shelf is also full then we discard the order with the lowest remaining freshness. We are trying to preserve the highest quality food.
+```
+
+### Implementation Details
+- FreshnessIndex class has been added for this. It uses TreeMap under the hood to arrange the order based on the decay rate 
+- Use of TreeMap allow us to achieve O(log n) time complexity.
