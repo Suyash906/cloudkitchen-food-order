@@ -7,7 +7,6 @@ import com.css.challenge.client.StorageType;
 import java.util.Map;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.locks.ReentrantLock;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,7 +14,6 @@ import org.slf4j.LoggerFactory;
 public class KitchenManager  implements OrderFulfillmentService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(KitchenManager.class);
-    private final ReentrantLock kitchenLock = new ReentrantLock(true);
     private final Storage cooler = new Storage(StorageType.COOLER, 6);
     private final Storage heater = new Storage(StorageType.HEATER, 6);
     private final Storage shelf = new Storage(StorageType.SHELF, 12);
@@ -31,12 +29,7 @@ public class KitchenManager  implements OrderFulfillmentService {
         if (order == null || order.getId() == null || order.getTemp() == null) {
             throw new IllegalArgumentException("Order, order id, and temp must not be null");
         }
-        kitchenLock.lock();
-        try {
-            placementPolicy.place(order);
-        } finally {
-            kitchenLock.unlock();
-        }
+        placementPolicy.place(order);
     }
 
     @Override
@@ -44,21 +37,25 @@ public class KitchenManager  implements OrderFulfillmentService {
         if (orderId == null) {
             throw new IllegalArgumentException("Order id must not be null");
         }
-        kitchenLock.lock();
+        Storage targetStorage = masterLookup.get(orderId);
+        if (targetStorage == null) {
+            // Driver arrived for an order that isn't present (already discarded or never existed)
+            return;
+        }
+
+        targetStorage.lock();
         try {
-            Storage targetStorage = masterLookup.get(orderId);
-            if (targetStorage == null) {
-                // Driver arrived for an order that isn't present (already discarded or never existed)
+            Order removed = targetStorage.remove(orderId);
+            if (removed == null) {
+                // Order moved to a different storage or was evicted between our lookup above
+                // and acquiring this storage's lock — nothing to pick up here anymore.
                 return;
             }
-
-            targetStorage.remove(orderId);
-            masterLookup.remove(orderId);
-
+            masterLookup.remove(orderId, targetStorage);
             ledger.record(orderId, Action.PICKUP, targetStorage.getType().getActionTarget());
             LOGGER.info("[PICKUP] Driver successfully retrieved Order {}.", orderId);
         } finally {
-            kitchenLock.unlock();
+            targetStorage.unlock();
         }
     }
     @Override
