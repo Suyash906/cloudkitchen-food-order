@@ -4,16 +4,17 @@ import com.css.challenge.client.Action;
 import com.css.challenge.client.Order;
 import com.css.challenge.client.StorageType;
 
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * PlacementPolicy implements the placement logic for all orders
+ */
 public class PlacementPolicy {
     private static final Logger LOGGER = LoggerFactory.getLogger(PlacementPolicy.class);
-
     private final Storage cooler;
     private final Storage heater;
     private final Storage shelf;
@@ -103,11 +104,8 @@ public class PlacementPolicy {
     }
 
     private void evictLowestFreshnessFromShelf() {
-        Order worstOrder = shelf.getOrders().stream()
-            .min(Comparator.comparingDouble(Order::getRemainingFreshness))
-            .orElse(null);
+        Order worstOrder = shelf.removeLowestFreshness();
         if (worstOrder != null) {
-            shelf.remove(worstOrder.getId());
             masterLookup.remove(worstOrder.getId());
             ledger.record(worstOrder.getId(), Action.DISCARD, shelf.getType().getActionTarget());
 
@@ -116,6 +114,7 @@ public class PlacementPolicy {
                 "[EVICTION] Discarded lowest quality item {} from shelf to prioritize fresh, fabulous food.",
                 worstOrder.getId());
         }
+
     }
     private Storage storageFor(StorageType type) {
         switch (type) {

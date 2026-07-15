@@ -9,11 +9,15 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
+/**
+ * Storage class for the available storage locations - heater, cooler, shelf
+ */
 public class Storage {
     private final StorageType type;
     private final int capacity;
     private final Map<String, Order> orders = new HashMap<>();
     private final ReentrantLock lock = new ReentrantLock();
+    private final FreshnessIndex freshnessIndex = new FreshnessIndex();
 
     public Storage(StorageType type, int capacity) {
         this.type = type;
@@ -38,11 +42,24 @@ public class Storage {
         }
         order.transitionTo(type);
         orders.put(order.getId(), order);
+        freshnessIndex.add(order, type.getDecayMultiplier());
         return true;
     }
 
     public Order remove(String orderId) {
-        return orders.remove(orderId);
+        Order removed = orders.remove(orderId);
+        if (removed != null) {
+            freshnessIndex.remove(orderId);
+        }
+        return removed;
+    }
+
+    Order removeLowestFreshness() {
+        Order lowest = freshnessIndex.removeMin();
+        if (lowest != null) {
+            orders.remove(lowest.getId());
+        }
+        return lowest;
     }
 
     public Collection<Order> getOrders() {
