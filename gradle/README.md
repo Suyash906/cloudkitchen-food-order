@@ -21,9 +21,10 @@ $ ./gradlew run --args="--auth=<token>"
 
 ### Logic
 ```
-When an order can't be placed on it's ideal storage, and the shelf is also full then we discard the order with the lowest remaining freshness. We are trying to preserve the highest quality food.
+When an order can't be placed in its ideal storage, and the shelf is also full, we first try to free a shelf slot by relocating a misplaced item back to its own ideal storage. If that isn't possible, we discard the shelf order with the lowest remaining freshness, to preserve the highest quality food.
 ```
 
 ### Implementation Details
-- FreshnessIndex class has been added for this. It uses TreeMap under the hood to arrange the order based on the decay rate 
-- Use of TreeMap allow us to achieve O(log n) time complexity.
+```
+FreshnessIndex uses a TreeMap keyed by each order's projected expiry time (when its remaining freshness will hit zero, given its current storage's decay rate), giving O(log n) lookup of the least-fresh order instead of a linear scan.
+```
