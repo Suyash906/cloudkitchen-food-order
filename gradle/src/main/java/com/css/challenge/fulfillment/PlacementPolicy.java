@@ -45,6 +45,29 @@ public class PlacementPolicy {
     }
 
     public void place(Order order) {
+        Storage ideal = storageFor(StorageType.fromTemp(order.getTemp()));
+
+        ideal.lock();
+        try {
+            if (masterLookup.containsKey(order.getId())) {
+                LOGGER.info("[REJECT] Order {} already exists; ignoring duplicate placement.", order.getId());
+                return;
+            }
+            if (ideal.tryAdd(order)) {
+                commit(order, ideal);
+                return;
+            }
+        } finally {
+            ideal.unlock();
+        }
+
+        // ideal storage was full. Fall back to the fully safe cross-storage cascade,
+        // which re-checks everything from scratch under all three locks.
+        placeWithFullLock(order);
+    }
+
+
+    private void placeWithFullLock(Order order) {
         lockAll();
         try {
             if (masterLookup.containsKey(order.getId())) {
@@ -117,13 +140,10 @@ public class PlacementPolicy {
 
     }
     private Storage storageFor(StorageType type) {
-        switch (type) {
-            case COOLER:
-                return cooler;
-            case HEATER:
-                return heater;
-            default:
-                return shelf;
-        }
+        return switch (type) {
+            case COOLER -> cooler;
+            case HEATER -> heater;
+            default -> shelf;
+        };
     }
 }
