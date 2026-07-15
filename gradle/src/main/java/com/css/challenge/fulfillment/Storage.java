@@ -7,11 +7,13 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class Storage {
     private final StorageType type;
     private final int capacity;
     private final Map<String, Order> orders = new HashMap<>();
+    private final ReentrantLock lock = new ReentrantLock();
 
     public Storage(StorageType type, int capacity) {
         this.type = type;
@@ -22,13 +24,21 @@ public class Storage {
         return type;
     }
 
-    public boolean hasRoom() {
-        return orders.size() < capacity;
+    void lock() {
+        lock.lock();
     }
 
-    public void add(Order order) {
+    void unlock() {
+        lock.unlock();
+    }
+
+    boolean tryAdd(Order order) {
+        if (orders.size() >= capacity) {
+            return false;
+        }
         order.transitionTo(type);
         orders.put(order.getId(), order);
+        return true;
     }
 
     public Order remove(String orderId) {
