@@ -1,6 +1,6 @@
 # README
 
-Author: `<your name here>`
+Author: `Suyash Srivastava`
 
 ## How to run
 
@@ -19,4 +19,12 @@ $ ./gradlew run --args="--auth=<token>"
 
 ## Discard criteria
 
-`<your chosen discard criteria and rationale here>`
+### Logic
+```
+When an order can't be placed in its ideal storage, and the shelf is also full, we first try to free a shelf slot by relocating a misplaced item back to its own ideal storage. If that isn't possible, we discard the shelf order with the lowest remaining freshness, to preserve the highest quality food.
+```
+
+### Implementation Details
+```
+FreshnessIndex uses a TreeMap keyed by each order's projected expiry time (when its remaining freshness will hit zero, given its current storage's decay rate), giving O(log n) lookup of the least-fresh order instead of a linear scan.
+```
